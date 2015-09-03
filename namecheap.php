@@ -1,6 +1,9 @@
 <?php
 // Namecheap API class
 
+// Added composer support for Guzzle
+require 'vendor/autoload.php';
+
 class namecheap
 {
 	// API credential information required to execute requests
@@ -8,7 +11,9 @@ class namecheap
 	private $api_user;
 	private $api_key;
 	private $api_ip;
-	// sotrage for API responses
+	private $client;
+
+	// storage for API responses
 	public $Response;
 	public $Error;
 	public $Raw;
@@ -21,6 +26,8 @@ class namecheap
 	*/
 	public function __construct( $credentials, $sandbox = true )
 	{
+		$this->client = new GuzzleHttp\Client();
+
 		if ( $sandbox ) { 
 			$this->api_url = 'https://api.sandbox.namecheap.com/xml.response';
 		} else {
@@ -57,26 +64,39 @@ class namecheap
 		$this->Response = '';
 		$this->Raw = '';
 
-		$url = $this->api_url . 
-			'?ApiUser=' . $this->api_user . 
-			'&ApiKey=' . $this->api_key . 
-			'&UserName=' . $this->api_user . 
-			'&ClientIP=' . $this->api_ip .
-			'&Command=' . $command;
+		$post_params = [
+			'ApiUser' => $this->api_user,
+			'ApiKey' => $this->api_key,
+			'UserName' => $this->api_user,
+			'ClientIP' => $this->api_ip,
+			'Command' => $command,
+		];
+
 		foreach ( $args as $arg => $value ) 
 		{
-			$url .= "&$arg=";
-			$url .= urlencode( $value );
+			$post_params[$arg] = urlencode($value);
 		}
-		$ch = curl_init( $url );
-		curl_setopt( $ch, CURLOPT_RETURNTRANSFER, TRUE );
-		$result = curl_exec( $ch );
-		curl_close( $ch );
-		if ( FALSE == $result ) {
+
+		try 
+		{
+			$response = $this->client->post($this->api_url, [
+				'form_params' => $post_params,
+			]);
+		} 
+		catch (RequestException $e) 
+		{
+			echo $e->getRequest();
+			if ($e->hasResponse()) 
+			{
+				echo $e->getResponse();
+			}
+		}
+
+		if ( FALSE == $response ) {
 			$this->Error = 'Communication error with Namecheap.';
 			return FALSE;
 		}
-		$xml = new SimpleXMLElement( $result );
+		$xml = new SimpleXMLElement( $response->getBody()->getContents() );
 		$this->Raw = $xml;
 		if ( 'ERROR' == $xml['Status'] )
 		{
@@ -100,6 +120,7 @@ class namecheap
 		if ( is_array( $domains ) ) {
 			$domains = implode( ',', $domains );
 		}
+
 		if ( ! $this->execute( 'namecheap.domains.check', array( 'DomainList' => $domains ) ) ) {
 			// communication error
 			return FALSE;

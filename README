@@ -1,9 +1,18 @@
 Namecheap-REST-PHP - a simple PHP library for using the Namecheap REST API
-	http://developer.namecheap.com/docs/doku.php?id=api-reference:index
+   https://www.namecheap.com/support/api/intro.aspx
 
 *** ABOUT ***
 This is a simple single-file class for accessing the Namecheap REST API.
 
+*** Modified Fork from skpy ***
+This class has been modified to use Guzzle for abstracting HTTP requests via PHP streams.
+
+Removed Dependency : php5-curl
+Added Dependency : Composer https://getcomposer.org/
+Added Dependency : Guzzle http://docs.guzzlephp.org/en/latest/overview.html
+Added Dependency : PHP 5.5
+
+*** Usage ***
 Methods are loosely named after the corresponding API endpoint.
 
 namecheap.domains.check         == domainsCheck()
